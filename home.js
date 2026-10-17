@@ -1,92 +1,4 @@
-<style>
-.u-native-services_bg-img,
-.u-native-services_bg-img-1{
-  background-position:center;
-  background-size:cover;
-  background-repeat:no-repeat;
-}
 
-.u-native-services_section{
-  padding-top:6rem;
-  background:#FFFEFC;
-  color:#242424;
-  overflow:clip;
-}
-
-.u-native-services_track{
-  height:450vh;
-  position:relative;
-}
-
-.u-native-services_pin{
-  position:sticky;
-  top:0;
-  width:100%;
-  height:100vh;   /* fallback */
-  height:100svh;  /* stable on mobile, ignores toolbar show/hide */
-  overflow:visible;
-}
-
-.u-native-services_stage{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  transform:scale(.2);
-  transform-origin:50% 50%;
-  will-change:transform;
-  backface-visibility:hidden;
-  -webkit-backface-visibility:hidden;
-}
-
-/* Content block scales 1 → 1.1 in sync with the stage scale (driven from JS) */
-.u-content-block{
-  transform:scale(1);
-  transform-origin:50% 50%;
-  will-change:transform;
-  backface-visibility:hidden;
-  -webkit-backface-visibility:hidden;
-}
-
-/* Continuous values (scale, parallax) are smoothed in JS.
-   Discrete changes (fades, card slide, stack growth) are smoothed here. */
-.u-native-services_bg-img,
-.u-native-services_bg-img-1{
-  will-change:transform,opacity;
-  transition:opacity .9s cubic-bezier(.4,0,.2,1);
-}
-
-.u-native-services_card{
-  transition:opacity .6s cubic-bezier(.4,0,.2,1);
-}
-
-.u-native-services_col{
-  will-change:transform;
-  transition:transform .9s cubic-bezier(.22,.61,.36,1);
-}
-
-.u-native-services_stack{
-  transition:height .8s cubic-bezier(.22,.61,.36,1);
-}
-
-@media(max-width:809px){
-  .u-native-services_section{padding-top:4rem}
-  .u-native-services_track{height:400vh}
-  .u-native-services_section .section-head{padding-left:1.25rem;padding-right:1.25rem}
-  .u-native-services_col{gap:5rem}
-}
-
-@media(prefers-reduced-motion:reduce){
-  .u-native-services_bg-img,
-  .u-native-services_bg-img-1,
-  .u-native-services_card,
-  .u-native-services_col,
-  .u-native-services_stack{transition:none}
-}
-</style>
-
-
-<script>
 (function () {
   function init() {
     var R = document.querySelector(".u-native-services_section");
@@ -385,9 +297,7 @@
     init();
   }
 })();
-</script>
 
-<script>
 (function () {
   const AUTOPLAY_DURATION = 5000;
 
@@ -470,11 +380,10 @@
     document.querySelectorAll('.w-tabs').forEach(initTabSection);
   });
 })();
-</script>
 
 
-<!-- EXPERTISE ROWS (manual body-scroll driven, no ScrollTrigger) -->
-<script>
+
+
 (function () {
   function init() {
     var body = document.body;
@@ -587,12 +496,12 @@
     init();
   }
 })();
-</script>
 
 
-<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
-<script>
+
+
+
   const swiperMulti = new Swiper('.swiper-container', {
     slidesPerView: 'auto',
     centeredSlides: true,
@@ -619,4 +528,3 @@
       }
     }
   });
-</script>
