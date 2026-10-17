@@ -1,0 +1,114 @@
+
+
+
+/* ---------- 1. Page scroll container (fixed body) ---------- */
+
+html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+}
+
+@media screen and (max-width: 767px) {
+  html {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+
+/* ---------- 2. Letter swap (hover) ---------- */
+
+.ls-wrap {
+  display: inline-flex;
+  gap: 0;
+  position: relative;
+  overflow: hidden;
+  vertical-align: top;
+}
+.ls-wrap, .ls-wrap * {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  line-height: inherit;
+  color: inherit;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  word-spacing: 0 !important;
+  font-kerning: normal;
+  font-feature-settings: normal;
+}
+.ls-char {
+  position: relative;
+  display: inline-block;
+  white-space: pre;
+}
+.ls-a, .ls-b {
+  display: inline-block;
+  transition: transform .6s cubic-bezier(.22, 1, .36, 1);
+}
+.ls-b {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translateY(calc(var(--ls-dir) * -100%));
+}
+.ls-wrap.is-hover .ls-a { transform: translateY(calc(var(--ls-dir) * 100%)); }
+.ls-wrap.is-hover .ls-b { transform: translateY(0); }
+.ls-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ls-a, .ls-b { transition: none; }
+}
+
+
+/* ---------- 3. Text slide-up ---------- */
+
+.reveal-line { display: block; }
+.reveal-char { will-change: opacity, transform; }
+
+/* Hidden until its animation starts (or until the JS fallback shows it) */
+[data-text-slide-up]:not(.tsu-show) { visibility: hidden; }
+
+
+/* ---------- 4. Gradual spacing ---------- */
+
+[data-gradual-spacing] .gs-char {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+[data-gradual-spacing] .gs-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+
