@@ -17,11 +17,15 @@
     const lenis = new Lenis({
       wrapper: document.body,
       content: document.documentElement,
-      lerp: 0.075,
-      wheelMultiplier: 0.8,
-      touchMultiplier: 1,
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: "vertical",
       gestureOrientation: "vertical",
-      syncTouch: false
+      smoothWheel: true,
+      syncTouch: false,
+      touchMultiplier: 1,
+      wheelMultiplier: 0.8,
+      infinite: false
     });
 
     window.lenis = lenis;
