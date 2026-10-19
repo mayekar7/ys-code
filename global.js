@@ -17,15 +17,11 @@
     const lenis = new Lenis({
       wrapper: document.body,
       content: document.documentElement,
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: "vertical",
-      gestureOrientation: "vertical",
-      smoothWheel: true,
-      syncTouch: false,
-      touchMultiplier: 1,
+      lerp: 0.075,
       wheelMultiplier: 0.8,
-      infinite: false
+      touchMultiplier: 1,
+      gestureOrientation: "vertical",
+      syncTouch: false
     });
 
     window.lenis = lenis;
@@ -36,6 +32,29 @@
     }
 
     requestAnimationFrame(raf);
+
+    /* Lenis only measures the page height once, so re-measure whenever
+       the page grows (images, fonts, tall sections) to keep the bottom reachable. */
+    function remeasure() {
+      lenis.resize();
+    }
+
+    window.addEventListener("load", function () {
+      requestAnimationFrame(remeasure);
+      setTimeout(remeasure, 500);
+      setTimeout(remeasure, 1500);
+    });
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(remeasure);
+    }
+
+    if (window.ResizeObserver) {
+      var ro = new ResizeObserver(remeasure);
+      Array.prototype.forEach.call(document.body.children, function (child) {
+        if (!/^(SCRIPT|STYLE|LINK)$/.test(child.tagName)) ro.observe(child);
+      });
+    }
   }
 
   if (document.readyState === "loading") {
