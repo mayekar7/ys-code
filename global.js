@@ -286,14 +286,20 @@
     var observer = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         if (!entry.isIntersecting) return;
+
         var heading = entry.target;
         observer.unobserve(heading);
+
+        // data-delay is measured in seconds. For example, data-delay="5"
+        // waits five seconds before starting the animation.
+        var delay = Number(heading.dataset.delay) || 0;
 
         gsap.to(heading._gsChars, {
           opacity: 1,
           x: 0,
           duration: 0.5,
           stagger: 0.04,
+          delay: delay,
           ease: "power2.out"
         });
       });
@@ -317,12 +323,16 @@
     if (typeof gsap !== "undefined") {
       setup();
     } else if (tries < 50) {
-      setTimeout(function () { start(tries + 1); }, 100);
+      setTimeout(function () {
+        start(tries + 1);
+      }, 100);
     }
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function () { start(0); });
+    document.addEventListener("DOMContentLoaded", function () {
+      start(0);
+    });
   } else {
     start(0);
   }
