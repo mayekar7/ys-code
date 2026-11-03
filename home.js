@@ -1,3 +1,126 @@
+/* =====================================================
+   home.js  (Home page only)
+   Load AFTER: GSAP core + SplitText (loader), Swiper.
+   The small loader-skip / wait-for-loader scripts stay in the
+   Webflow Home head code (they must run before the first frame).
+   ===================================================== */
+
+
+/* ---------- 0. Loader (moved from Webflow Home footer code) ----------
+   Plays on a fresh visit or refresh; skipped when arriving from another
+   page of the site (window.ysSkipLoader, set in the Home head code).
+   Tells the page to start its animations when the loader starts fading. */
+(function () {
+  var root = document.querySelector('[data-loader="component"]');
+  if (!root) return;
+  if (window.ysSkipLoader) { root.style.display = 'none'; return; }  /* came from another page of the site */
+
+  var failsafe;
+  var finish = function () {
+    if (window.ysLoaderRelease) window.ysLoaderRelease();  /* start page animations (if not already) */
+    clearTimeout(failsafe);
+    root.style.display = 'none';
+    document.documentElement.style.overflow = '';
+  };
+
+  // If GSAP failed to load, never leave the page blocked
+  if (!window.gsap || !window.SplitText) { finish(); return; }
+
+  document.documentElement.style.overflow = 'hidden';
+  failsafe = setTimeout(finish, 12000);
+
+  function init() {
+    gsap.registerPlugin(SplitText);
+
+    // Settings (match the React props)
+    var DURATION = 1;        // overall speed: higher = slower
+    var FADE_OUT = 0.8;
+    var EASE = 'power4.out'; // closest to cubic-bezier(0.25,1,0.5,1)
+
+    var q = function (name) { return root.querySelector('[data-loader="' + name + '"]'); };
+    var wrap = q('images');
+    var imgs = gsap.utils.toArray('[data-loader="image"]', root);
+    var text1 = q('text-1');
+    var text2 = q('text-2');
+    var desc = q('description');
+    var total = imgs.length;
+    var spread = function (i) { return total === 1 ? 0 : -(110 * (total - 1)) / 2 + i * 110; };
+
+    // Reduced motion: simple fade, no movement
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      gsap.to(root, { opacity: 0, duration: 0.5, delay: 0.5, onComplete: finish });
+      return;
+    }
+
+    var s1 = SplitText.create(text1, { type: 'words' });
+    var s2 = SplitText.create(text2, { type: 'words' });
+    var sd = SplitText.create(desc, { type: 'words,lines' });
+    var textTargets = [s1.words, s2.words, sd.lines];
+
+    gsap.set(textTargets, {
+      rotateX: 90, opacity: 0,
+      transformPerspective: 1000, transformOrigin: '50% 100%'
+    });
+    gsap.set(desc, { opacity: 1 });
+    gsap.set(imgs, { opacity: 0, zIndex: 0 });
+
+    var tl = gsap.timeline();
+    tl.timeScale(1 / DURATION);
+
+    // 1. Stack slides up into view
+    tl.fromTo(wrap, { yPercent: 500, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.5, ease: EASE });
+    tl.set([text1, text2], { opacity: 1 }, '<');
+    tl.to(imgs, { opacity: 1, duration: 0.5, ease: EASE }, '<');
+    tl.to(textTargets, { rotateX: 0, opacity: 1, stagger: 0.08, ease: EASE }, '<+0.5');
+
+    // 2. Layer images in order
+    imgs.forEach(function (el, i) {
+      tl.to(el, { zIndex: i, duration: 0.1, ease: EASE }, i * 0.2);
+    });
+
+    // 3. Fan the stack upward
+    tl.to(imgs, {
+      scale: function (i) { return 1 + i * 0.15; },
+      yPercent: function (i) { return -(i * 20); },
+      duration: 1, ease: 'power3.inOut',
+      stagger: { each: 0.01, from: 'end' }
+    }, '<');
+
+    // 4. Spread into a vertical column
+    tl.to(imgs, {
+      scale: 1,
+      yPercent: function (i) { return spread(i); },
+      duration: 1, ease: 'power3.inOut',
+      stagger: { each: 0.01, from: 'end' }
+    }, '+=0.2');
+
+    // 5. Description + side text rotate out
+    tl.to(sd.lines, {
+      rotateX: 90, transformOrigin: 'top center', opacity: 0,
+      duration: 1, stagger: 0.08, ease: EASE
+    }, '<-0.1');
+    tl.to(wrap, { yPercent: 0, ease: EASE }, '<');
+    tl.to([s1.words, s2.words], {
+      opacity: 0, duration: 0.5, rotateX: 90, transformOrigin: 'top center',
+      stagger: 0.08, ease: EASE
+    });
+
+    // 6. Images fade, then the whole loader fades
+    tl.to(imgs, {
+      opacity: 0, duration: FADE_OUT,
+      stagger: { each: 0.08, from: 'end' },
+      onComplete: function () {
+        if (window.ysLoaderRelease) window.ysLoaderRelease();  /* loader starts fading: start page animations */
+        gsap.to(root, { opacity: 0, duration: FADE_OUT, ease: EASE, onComplete: finish });
+      }
+    }, '<+0.2');
+  }
+
+  // Wait for fonts so SplitText measures lines correctly
+  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(init); } else { init(); }
+})();
+
+
 (function () {
   function init() {
     var R = document.querySelector(".u-native-services_section");
