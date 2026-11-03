@@ -6,6 +6,19 @@
    ===================================================== */
 
 
+/* ---------- 0. Page reveal gate ----------
+   window.ptReveal is created in the Webflow head code (page transition).
+   It resolves when the page is actually on screen: about 0.6s into the
+   slide-up transition, or right away on a normal page load.
+   On the Home page it also waits for the loader to start fading out
+   (or resolves straight away when the loader is skipped).
+   Animations below wait for it, so they play while the page slides in,
+   right after the loader, and never run unseen while Chrome prerenders. */
+function whenRevealed(fn) {
+  (window.ptReveal || Promise.resolve()).then(fn);
+}
+
+
 /* ---------- 1. Lenis smooth scroll (fixed body as scroller) ---------- */
 (function () {
   function init() {
@@ -95,7 +108,7 @@
         var dist = from === "last"   ? n - 1 - i
                  : from === "center" ? Math.abs(i - (n - 1) / 2)
                  : i;
-        var text = ch === " " ? " " : ch;
+        var text = ch === " " ? " " : ch;
 
         var char = document.createElement("span");
         char.className = "ls-char";
@@ -199,22 +212,26 @@
     var els = document.querySelectorAll("[data-text-slide-up]");
     if (!els.length) return;
 
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        var el = entry.target;
-        observer.unobserve(el);
-        playParagraph(el);
+    /* Start watching only once the page is revealed (see section 0).
+       Until then the text stays hidden by the CSS rule. */
+    whenRevealed(function () {
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          var el = entry.target;
+          observer.unobserve(el);
+          playParagraph(el);
+        });
+      }, {
+        threshold: 0,
+        rootMargin: "0px 0px -12% 0px"
       });
-    }, {
-      threshold: 0,
-      rootMargin: "0px 0px -12% 0px"
-    });
 
-    els.forEach(function (el) {
-      if (el.dataset.tsuInitialized === "true") return;
-      el.dataset.tsuInitialized = "true";
-      observer.observe(el);
+      els.forEach(function (el) {
+        if (el.dataset.tsuInitialized === "true") return;
+        el.dataset.tsuInitialized = "true";
+        observer.observe(el);
+      });
     });
   }
 
@@ -308,14 +325,20 @@
       rootMargin: "0px 0px -15% 0px"
     });
 
+    var ready = [];
     headings.forEach(function (heading) {
       if (heading.dataset.gsInitialized === "true") return;
       heading.dataset.gsInitialized = "true";
 
       var chars = splitHeading(heading);
       heading._gsChars = chars;
-      gsap.set(chars, { opacity: 0, x: -20 });
-      observer.observe(heading);
+      gsap.set(chars, { opacity: 0, x: -20 });   // hidden straight away
+      ready.push(heading);
+    });
+
+    /* Start watching only once the page is revealed (see section 0) */
+    whenRevealed(function () {
+      ready.forEach(function (heading) { observer.observe(heading); });
     });
   }
 
@@ -339,7 +362,86 @@
 })();
 
 
+/* ---------- 5. Fade in (data-fade-in) ----------
+   Add the attribute data-fade-in to any element (e.g. .hero-col-wrap).
+   It starts hidden (CSS rule in global.css) and fades up into place
+   once the page is revealed and the element is in view.
+   Optional attributes:
+     data-delay="0.3"      seconds to wait (default 0)
+     data-duration="1.2"   seconds (default 1.2)
+     data-distance="5rem"  how far it moves up (default 5rem, "0" = fade only) */
+(function () {
+  function showAll() {
+    document.querySelectorAll("[data-fade-in]").forEach(function (el) {
+      el.classList.add("fi-show");
+    });
+  }
 
+  function init() {
+    var els = document.querySelectorAll("[data-fade-in]");
+    if (!els.length) return;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      showAll();
+      return;
+    }
+
+    function play(el) {
+      var delay = parseFloat(el.getAttribute("data-delay")) || 0;
+      var duration = parseFloat(el.getAttribute("data-duration")) || 1.2;
+      var distance = el.getAttribute("data-distance") || "5rem";
+
+      gsap.fromTo(el,
+        { y: distance, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: duration,
+          delay: delay,
+          ease: "power3.out",
+          onStart: function () { el.classList.add("fi-show"); },
+          onComplete: function () { gsap.set(el, { clearProps: "transform,opacity" }); }
+        }
+      );
+    }
+
+    whenRevealed(function () {
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          observer.unobserve(entry.target);
+          play(entry.target);
+        });
+      }, {
+        threshold: 0,
+        rootMargin: "0px 0px -10% 0px"
+      });
+
+      els.forEach(function (el) {
+        if (el.dataset.fiInitialized === "true") return;
+        el.dataset.fiInitialized = "true";
+        observer.observe(el);
+      });
+    });
+  }
+
+  function start(tries) {
+    if (typeof gsap !== "undefined") {
+      init();
+    } else if (tries < 50) {
+      setTimeout(function () { start(tries + 1); }, 100);
+    } else {
+      /* GSAP never loaded: don't leave elements invisible */
+      showAll();
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () { start(0); });
+  } else {
+    start(0);
+  }
+})();
 
 
 /* ---------- 8. Navbar hide on scroll down / show on scroll up ---------- */
@@ -402,5 +504,3 @@
     init();
   }
 })();
-
-
