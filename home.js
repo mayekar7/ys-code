@@ -1,4 +1,3 @@
-
 (function () {
   function init() {
     var R = document.querySelector(".u-native-services_section");
@@ -12,7 +11,13 @@
     var others = R.querySelectorAll(".u-native-services_bg-img");
     var cards = R.querySelectorAll(".u-native-services_card");
     var contentBlocks = R.querySelectorAll(".u-content-block");
-    var imgs = [img1, others[0], others[1]];
+
+    /*
+      All background images in DOM order:
+      [img-1, bg-img, bg-img, bg-img, bg-img, bg-img] = 6 images.
+    */
+    var imgs = [img1];
+    for (var o = 0; o < others.length; o++) imgs.push(others[o]);
 
     var body = document.body;
 
@@ -22,10 +27,8 @@
     if (!stack) missing.push("stack");
     if (!col) missing.push("col");
     if (!cards.length) missing.push("cards");
-
-    imgs.forEach(function (im, i) {
-      if (!im) missing.push("bg image " + (i + 1));
-    });
+    if (!img1) missing.push("bg image 1");
+    if (imgs.length < 2) missing.push("bg images");
 
     if (missing.length) {
       console.warn(
@@ -33,6 +36,13 @@
         missing.join(", ")
       );
       return;
+    }
+
+    if (imgs.length < 6) {
+      console.warn(
+        "[native-services] Expected 6 background images, found " +
+          imgs.length + ". Sequence will use what is available."
+      );
     }
 
     var reduceMotion =
@@ -45,11 +55,27 @@
     var CONTENT_SCALE_START = 1;
     var CONTENT_SCALE_END = 1.1;
 
+    /*
+      Images 1-4 play while the stage scales up (0.2 → 1).
+      Image 4 stays once scaling finishes and belongs to card 1,
+      card 2 → image 5, card 3 → image 6.
+    */
+    var SCALE_IMAGES = Math.min(4, imgs.length);
+
     var clamp = function (v) {
       return Math.min(1, Math.max(0, v));
     };
 
+    /*
+      Keep the stage square while it scales:
+      at the start of scaling it is clipped to a centred square,
+      and it opens out to the full stage by the end.
+      Set to false to go back to the full-frame image.
+    */
+    var SQUARE_WHILE_SCALING = true;
+
     var stageH = stage.offsetHeight;
+    var stageW = stage.offsetWidth;
     var cardCenters = [];
 
     /* BODY SCROLLER */
@@ -68,6 +94,7 @@
 
     var last = -1;
     var lastComplete = null;
+    var lastBg = -1;
     var running = false;
     var lastTime = 0;
 
@@ -77,6 +104,7 @@
     */
     function measure() {
       stageH = stage.offsetHeight;
+      stageW = stage.offsetWidth;
 
       trackStart =
         track.getBoundingClientRect().top + getBodyScroll();
@@ -122,6 +150,24 @@
 
       /* Content scaling synced with the stage scale */
       var progress = clamp((curScale - 0.2) / 0.8);
+
+      /*
+        Square clip on the whole stage (not just the images), so the
+        stage's white background is cut away too and the text behind
+        stays visible. Opens to the full frame as scaling ends.
+      */
+      if (SQUARE_WHILE_SCALING) {
+        var side = Math.min(stageW, stageH);
+        var open = 1 - progress;
+        var insetX = ((stageW - side) / 2) * open;
+        var insetY = ((stageH - side) / 2) * open;
+        var clip =
+          progress >= 1
+            ? "none"
+            : "inset(" + insetY + "px " + insetX + "px)";
+        stage.style.clipPath = clip;
+        stage.style.webkitClipPath = clip;
+      }
 
       var cs =
         CONTENT_SCALE_START +
@@ -173,6 +219,15 @@
       }
     }
 
+    function showBg(index) {
+      if (index === lastBg) return;
+      lastBg = index;
+
+      for (var m = 0; m < imgs.length; m++) {
+        imgs[m].style.opacity = m === index ? "1" : "0";
+      }
+    }
+
     function readScroll(snap) {
       var vh = window.innerHeight;
       var mob = window.innerWidth < 810;
@@ -210,6 +265,7 @@
       }
 
       var complete = p >= 1;
+      var a = k - 2;
 
       if (k !== last || complete !== lastComplete) {
         last = k;
@@ -217,7 +273,6 @@
 
         stack.style.height = HEIGHTS[k] || "100%";
 
-        var a = k - 2;
         var ty = 0;
 
         if (a >= 0 && cardCenters[a] !== undefined) {
@@ -232,17 +287,29 @@
               ? (n === a ? "1" : "0.2")
               : "0";
         }
-
-        var bgIndex =
-          complete && a >= 0
-            ? Math.min(2, a)
-            : 0;
-
-        for (var m = 0; m < imgs.length; m++) {
-          imgs[m].style.opacity =
-            m === bgIndex ? "1" : "0";
-        }
       }
+
+      /*
+        Background image:
+        - while scaling: step through images 1-4 with scroll progress
+        - after scaling: image 4 stays, then each card gets its own
+          (card 1 → 4, card 2 → 5, card 3 → 6)
+      */
+      var bgIndex;
+
+      if (!complete) {
+        bgIndex = Math.min(
+          SCALE_IMAGES - 1,
+          Math.floor(p * SCALE_IMAGES)
+        );
+      } else {
+        bgIndex = Math.min(
+          imgs.length - 1,
+          SCALE_IMAGES - 1 + Math.max(0, a)
+        );
+      }
+
+      showBg(bgIndex);
 
       if (snap) {
         curScale = tgtScale;
@@ -269,6 +336,7 @@
     function remeasure() {
       measure();
       last = -1;
+      lastBg = -1;
       readScroll(true);
     }
 
@@ -297,6 +365,7 @@
     init();
   }
 })();
+
 
 (function () {
   const AUTOPLAY_DURATION = 5000;
