@@ -504,3 +504,119 @@ function whenRevealed(fn) {
     init();
   }
 })();
+
+/* ---------- 6. Page transition: fallback + prefetch (moved from Webflow footer code) ----------
+   Chrome / Edge / Safari 18.2+: the slide is done by the CSS in global.css; this part only
+   prefetches pages on hover where prerendering isn't available.
+   Other browsers: old page recedes + dims while a panel slides up, then the next page loads. */
+(function () {
+  var root = document.documentElement;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var native = 'onpageswap' in window; /* cross-document view transitions supported */
+  var CDN = 'https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/';
+  var busy = false, prefetched = {};
+
+  function eligible(event) {
+    if (busy || reduce.matches || event.defaultPrevented || event.button > 0 ||
+        event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return null;
+    var link = event.target.closest && event.target.closest('a[href]');
+    if (!link || (link.target && link.target !== '_self') || link.hasAttribute('download') ||
+        link.closest('[data-pt-ignore]')) return null;
+    var url;
+    try { url = new URL(link.href, location.href); } catch (e) { return null; }
+    if (!/^https?:$/.test(url.protocol) || url.origin !== location.origin ||
+        (url.pathname === location.pathname && url.search === location.search)) return null;
+    return url;
+  }
+
+  /* Prefetch the next page on hover/touch so the transition starts sooner after a click */
+  function prefetch(event) {
+    var url = eligible(event);
+    if (!url || prefetched[url.href]) return;
+    prefetched[url.href] = 1;
+    var l = document.createElement('link');
+    l.rel = 'prefetch'; l.href = url.href;
+    document.head.appendChild(l);
+  }
+  /* Browsers with speculation rules prerender instead (see head) */
+  var specRules = HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules');
+  if (!specRules) {
+    document.addEventListener('mouseover', prefetch, { passive: true });
+    document.addEventListener('touchstart', prefetch, { passive: true });
+  }
+
+  /* Fallback arrival: lift the cover so the page's own animations play */
+  if (root.classList.contains('pt-arrival')) {
+    clearTimeout(window.__ptArrivalFallback);
+    root.classList.remove('pt-arrival');
+    root.classList.add('pt-nav-in');   /* menu drops back in */
+    setTimeout(function () { root.classList.remove('pt-nav-in'); }, 1600);
+  }
+  if (native) return;
+
+  /* ---------- Fallback leave ---------- */
+  function load(src) {
+    return new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = src; s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  (window.gsap ? Promise.resolve() : load(CDN + 'gsap.min.js'))
+    .then(function () { return window.CustomEase ? 0 : load(CDN + 'CustomEase.min.js'); })
+    .then(function () {
+      gsap.registerPlugin(CustomEase);
+      CustomEase.create('ptSnappy', 'M0,0 C0.25,0 0.289,0.216 0.321,0.426 0.355,0.654 0.441,0.838 0.496,0.886 0.535,0.92 0.698,1 1,1');
+    })
+    .catch(function () {});
+
+  function pageColor() {
+    var els = [document.body, root];
+    for (var i = 0; i < els.length; i++) {
+      var c = getComputedStyle(els[i]).backgroundColor;
+      if (c && c !== 'transparent' && !/,\s*0\)$/.test(c)) return c;
+    }
+    return '#faf8f4';
+  }
+  function layer(bg, z) {
+    var el = document.createElement('div');
+    el.setAttribute('aria-hidden', 'true');
+    el.setAttribute('data-pt-layer', '');
+    el.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:' + z + ';background:' + bg;
+    root.appendChild(el);
+    return el;
+  }
+
+  document.addEventListener('click', function (event) {
+    var url = eligible(event);
+    if (!url || !window.gsap || !window.CustomEase || !document.body) return;
+    event.preventDefault();
+    busy = true;
+    var bg = pageColor();
+    try { sessionStorage.setItem('pt-arrival', bg); } catch (e) {}
+    var scrim = layer('rgba(30,30,30,.7)', 2147483645);
+    var panel = layer(bg, 2147483646);
+    gsap.set(scrim, { opacity: 0 });
+    root.style.background = '#1e1e1e';
+    /* shrink from the top of the screen (works whether the window or a fixed body scrolls) */
+    var fixedBody = getComputedStyle(document.body).position === 'fixed';
+    gsap.set(document.body, { transformOrigin: '50% ' + (fixedBody ? 0 : window.scrollY) + 'px' });
+    gsap.timeline({
+      defaults: { duration: 1.5, ease: 'ptSnappy' },
+      onComplete: function () { location.assign(url.href); }
+    })
+      .to(document.body, { scale: .95, y: '-10rem' }, 0)
+      .fromTo(panel, { yPercent: 100 }, { yPercent: 0 }, 0)
+      .to(scrim, { opacity: 1, duration: 1, ease: 'power1' }, 0);
+  });
+
+  /* Back/forward cache: undo the fallback leave animation */
+  window.addEventListener('pageshow', function (event) {
+    if (!event.persisted) return;
+    busy = false;
+    root.classList.remove('pt-arrival');
+    root.style.background = '';
+    root.querySelectorAll('[data-pt-layer]').forEach(function (el) { el.remove(); });
+    if (window.gsap) gsap.set(document.body, { clearProps: 'transform,transformOrigin' });
+  });
+})();
