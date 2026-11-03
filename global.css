@@ -114,3 +114,47 @@ body {
 /* ---------- 5. Fade in (data-fade-in) ---------- */
 /* Hidden until global.js fades it in */
 [data-fade-in]:not(.fi-show){opacity:0}
+
+
+/* =====================================================
+   Page transition (moved from Webflow site head code)
+   Chrome / Edge / Safari 18.2+: the real next page slides up over the old one.
+   If your menu has a different class, replace .nav_fixed below.
+   ===================================================== */
+/* Native transition (Chrome, Edge, Safari 18.2+): the real next page slides up over the old one */
+@view-transition { navigation: auto; }
+@media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
+::view-transition { background: #1e1e1e; }
+::view-transition-image-pair(root) { isolation: auto; }
+::view-transition-old(root),
+::view-transition-new(root) { mix-blend-mode: normal; }
+::view-transition-old(root) {
+  transform-origin: 50% 0;
+  animation: pt-recede 1.5s linear(0, 0.001 2.5%, 0.003 5%, 0.008 7.5%, 0.014 10%, 0.024 12.5%, 0.036 15%, 0.053 17.5%, 0.076 20%, 0.107 22.5%, 0.149 25%, 0.21 27.5%, 0.304 30%, 0.451 32.5%, 0.569 35%, 0.654 37.5%, 0.722 40%, 0.779 42.5%, 0.826 45%, 0.863 47.5%, 0.889 50%, 0.906 52.5%, 0.919 55%, 0.93 57.5%, 0.94 60%, 0.948 62.5%, 0.956 65%, 0.963 67.5%, 0.969 70%, 0.974 72.5%, 0.979 75%, 0.983 77.5%, 0.987 80%, 0.99 82.5%, 0.993 85%, 0.995 87.5%, 0.997 90%, 0.998 92.5%, 0.999 95%, 1) both,
+             pt-dim 1s cubic-bezier(.25, .46, .45, .94) both;
+}
+::view-transition-new(root) {
+  animation: pt-rise 1.5s linear(0, 0.001 2.5%, 0.003 5%, 0.008 7.5%, 0.014 10%, 0.024 12.5%, 0.036 15%, 0.053 17.5%, 0.076 20%, 0.107 22.5%, 0.149 25%, 0.21 27.5%, 0.304 30%, 0.451 32.5%, 0.569 35%, 0.654 37.5%, 0.722 40%, 0.779 42.5%, 0.826 45%, 0.863 47.5%, 0.889 50%, 0.906 52.5%, 0.919 55%, 0.93 57.5%, 0.94 60%, 0.948 62.5%, 0.956 65%, 0.963 67.5%, 0.969 70%, 0.974 72.5%, 0.979 75%, 0.983 77.5%, 0.987 80%, 0.99 82.5%, 0.993 85%, 0.995 87.5%, 0.997 90%, 0.998 92.5%, 0.999 95%, 1) both;
+}
+@keyframes pt-recede { to { transform: translateY(-10rem) scale(.95); } }
+@keyframes pt-dim { to { filter: brightness(.3); } }
+@keyframes pt-rise { from { transform: translateY(100vh); } }
+
+/* Menu stays fixed in place: it is lifted out of the page snapshot and simply
+   shows the new page's menu straight away, while the page underneath changes. */
+.nav_fixed { view-transition-name: pt-nav; }
+::view-transition-group(pt-nav) { animation: none; }
+::view-transition-old(pt-nav) { display: none; }
+::view-transition-new(pt-nav) { animation: none; }
+
+/* Fallback (Firefox / older browsers): arriving page starts covered by the panel colour */
+html.pt-arrival::after{content:"";position:fixed;inset:0;z-index:2147483647;pointer-events:none;background:var(--pt-bg,#faf8f4)}
+@media (prefers-reduced-motion: reduce){html.pt-arrival::after{display:none}}
+html.pt-nav-in .nav_fixed{animation:pt-nav-in-fb 1.25s cubic-bezier(.16,1,.3,1) .15s both}
+@keyframes pt-nav-in-fb{from{translate:0 3rem;opacity:0}}
+
+/* =====================================================
+   Home loader: hidden when arriving from another page of the site
+   (the class is set by the small script in the Home page head code)
+   ===================================================== */
+html.ys-no-loader [data-loader="component"]{display:none !important}
