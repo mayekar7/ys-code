@@ -111,4 +111,6 @@ body {
   white-space: nowrap;
 }
 
-
+/* ---------- 5. Fade in (data-fade-in) ---------- */
+/* Hidden until global.js fades it in */
+[data-fade-in]:not(.fi-show){opacity:0}
