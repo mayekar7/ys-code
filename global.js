@@ -133,7 +133,7 @@ function whenRevealed(fn) {
       el.appendChild(wrap);
 
       // Trigger on the whole link if the text sits inside one, otherwise on the element
-      var target = el.closest("a") || el;
+      var target = el.closest("a, .sp-trigger") || el;
       target.addEventListener("mouseenter", function () { wrap.classList.add("is-hover"); });
       target.addEventListener("mouseleave", function () { wrap.classList.remove("is-hover"); });
     });
