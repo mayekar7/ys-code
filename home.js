@@ -204,8 +204,11 @@
     /* BODY SCROLLER */
     var trackStart = 0;
 
+    /* Page scroll position, whichever element scrolls:
+       touch devices scroll the fixed body, desktop scrolls the window
+       (see global CSS section 1). The one not scrolling is always 0. */
     function getBodyScroll() {
-      return body.scrollTop;
+      return body.scrollTop || window.scrollY || 0;
     }
 
     /* Smoothed values and scroll-driven targets */
@@ -606,8 +609,14 @@
 
     /* Layout position of an element relative to the body scroll
        content, measured with transforms cleared so it stays stable. */
+    /* Page scroll position, whichever element scrolls:
+       touch devices scroll the fixed body, desktop scrolls the window. */
+    function scrollPos() {
+      return body.scrollTop || window.scrollY || 0;
+    }
+
     function topOf(el) {
-      return el.getBoundingClientRect().top + body.scrollTop;
+      return el.getBoundingClientRect().top + scrollPos();
     }
 
     function measure() {
@@ -629,7 +638,7 @@
     }
 
     function update() {
-      var y = body.scrollTop;
+      var y = scrollPos();
       var shift = window.innerWidth * 0.08;       // 8vw
 
       items.forEach(function (it) {
