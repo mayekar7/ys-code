@@ -19,7 +19,23 @@ function whenRevealed(fn) {
 }
 
 
-/* ---------- 1. Lenis smooth scroll (fixed body as scroller) ---------- */
+/* ---------- 0b. Which element scrolls ----------
+   Touch devices: the fixed body scrolls (keeps the mobile address bar steady).
+   Desktop / mouse: the normal page (window) scrolls.
+   Read from the CSS in global.css section 1, so the two always agree. */
+function bodyIsScroller() {
+  return getComputedStyle(document.body).position === "fixed";
+}
+function getScrollY() {
+  return bodyIsScroller() ? document.body.scrollTop : window.scrollY;
+}
+function getScrollTarget() {
+  return bodyIsScroller() ? document.body : window;
+}
+
+
+/* ---------- 1. Lenis smooth scroll ----------
+   Desktop: scrolls the window. Touch devices: scrolls the fixed body. */
 (function () {
   function init() {
     if (typeof Lenis === "undefined") {
@@ -27,9 +43,11 @@ function whenRevealed(fn) {
       return;
     }
 
-    const lenis = new Lenis({
-      wrapper: document.body,
-      content: document.documentElement,
+    var scrollerOptions = bodyIsScroller()
+      ? { wrapper: document.body, content: document.documentElement }
+      : {};
+
+    const lenis = new Lenis(Object.assign({}, scrollerOptions, {
       duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: "vertical",
@@ -39,7 +57,7 @@ function whenRevealed(fn) {
       touchMultiplier: 1,
       wheelMultiplier: 0.8,
       infinite: false
-    });
+    }));
 
     window.lenis = lenis;
 
@@ -460,8 +478,7 @@ function whenRevealed(fn) {
       return;
     }
 
-    var body = document.body;
-    var lastY = Math.max(0, body.scrollTop);
+    var lastY = Math.max(0, getScrollY());
     var hidden = false;
     var ticking = false;
 
@@ -478,7 +495,7 @@ function whenRevealed(fn) {
       ticking = false;
 
       /* Clamp: iOS rubber-band scrolling can give negative values */
-      var y = Math.max(0, body.scrollTop);
+      var y = Math.max(0, getScrollY());
 
       if (y <= TOP_OFFSET) {
         setHidden(false);
@@ -489,7 +506,7 @@ function whenRevealed(fn) {
       lastY = y;
     }
 
-    body.addEventListener("scroll", function () {
+    getScrollTarget().addEventListener("scroll", function () {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(update);
