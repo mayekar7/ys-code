@@ -1,36 +1,32 @@
+/* ---------- 1. Page scroll ----------
+   Desktop / mouse: normal page scrolling. A fixed body there puts the
+   scrollbar on top of full-width fixed elements (footer video, navbar),
+   which shows as a strip on the right edge in Chrome/Edge on Windows.
+   Touch devices (phones, tablets): fixed body as the scroller, so the
+   browser's address bar stays put and the screen height doesn't jump.
+   site.js checks which one is active, so keep the media query in sync. */
 
-
-
-/* ---------- 1. Page scroll container (fixed body) ---------- */
-
-html {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+html,
+body {
+  overscroll-behavior-y: none;   /* no rubber-band bounce at top/bottom */
 }
 
 body {
-  width: 100%;
-  height: 100%;
-  position: fixed;
-  inset: 0;
-  overflow-x: hidden;
-  overflow-y: scroll;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: none;
+  overflow-x: clip;              /* no sideways scroll, without making body a scroller */
 }
 
-@media screen and (max-width: 767px) {
+@media (hover: none) and (pointer: coarse) {
   html {
+    width: 100%;
     height: 100%;
     overflow: hidden;
   }
 
   body {
-    position: fixed;
-    inset: 0;
     width: 100%;
     height: 100%;
+    position: fixed;
+    inset: 0;
     overflow-x: hidden;
     overflow-y: scroll;
     -webkit-overflow-scrolling: touch;
