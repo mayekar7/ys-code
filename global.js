@@ -462,6 +462,92 @@ function getScrollTarget() {
 })();
 
 
+/* ---------- 5b. Scale in (data-scale-in) ----------
+   Add the attribute data-scale-in to any element (e.g. .hero-img).
+   It starts scaled up (CSS rule in the Webflow head code) and scales down
+   to 1 once the page is revealed (after the loader on Home) and it's in view.
+   Remove any scale set on the element in the Webflow Designer.
+   Optional attributes:
+     data-scale-from="1.1"     starting scale (default 1.1)
+     data-scale-duration="1.6" seconds (default 1.6)
+     data-scale-delay="0"      seconds to wait (default 0) */
+(function () {
+  function showAll() {
+    document.querySelectorAll("[data-scale-in]").forEach(function (el) {
+      el.classList.add("si-show");
+    });
+  }
+
+  function init() {
+    var els = document.querySelectorAll("[data-scale-in]");
+    if (!els.length) return;
+
+    /* Each element's starting scale, used by the CSS rule */
+    els.forEach(function (el) {
+      var from = parseFloat(el.getAttribute("data-scale-from")) || 1.1;
+      el.style.setProperty("--si-from", from);
+    });
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      showAll();
+      return;
+    }
+
+    function play(el) {
+      var from = parseFloat(el.getAttribute("data-scale-from")) || 1.1;
+      var duration = parseFloat(el.getAttribute("data-scale-duration")) || 1.6;
+      var delay = parseFloat(el.getAttribute("data-scale-delay")) || 0;
+
+      gsap.fromTo(el,
+        { scale: from },
+        {
+          scale: 1,
+          duration: duration,
+          delay: delay,
+          ease: "power3.out",
+          onStart: function () { el.classList.add("si-show"); },
+          onComplete: function () { gsap.set(el, { clearProps: "transform" }); }
+        }
+      );
+    }
+
+    /* Start only once the page is revealed (see section 0), same as fade in */
+    whenRevealed(function () {
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          observer.unobserve(entry.target);
+          play(entry.target);
+        });
+      }, { threshold: 0 });
+
+      els.forEach(function (el) {
+        if (el.dataset.siInitialized === "true") return;
+        el.dataset.siInitialized = "true";
+        observer.observe(el);
+      });
+    });
+  }
+
+  function start(tries) {
+    if (typeof gsap !== "undefined") {
+      init();
+    } else if (tries < 50) {
+      setTimeout(function () { start(tries + 1); }, 100);
+    } else {
+      /* GSAP never loaded: don't leave the image zoomed in */
+      showAll();
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () { start(0); });
+  } else {
+    start(0);
+  }
+})();
+
+
 /* ---------- 8. Navbar hide on scroll down / show on scroll up ---------- */
 (function () {
   var NAV_SELECTOR = ".nav_fixed";
